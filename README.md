@@ -1,0 +1,1 @@
+# konusmadan-duygu-tanima
