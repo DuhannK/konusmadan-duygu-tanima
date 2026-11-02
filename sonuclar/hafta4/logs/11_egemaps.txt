@@ -1,0 +1,18 @@
+Öznitelik sayısı: 88
+SVM (RBF)      VAL acc=0.538 F1=0.537 | TEST acc=0.505 macroF1=0.502 UAR=0.506 | {'C': 10, 'gamma': 0.003}
+   test veri seti bazında: {'RAVDESS': 'acc=0.452 F1=0.442', 'CREMA-D': 'acc=0.514 F1=0.510'}
+Random Forest  VAL acc=0.529 F1=0.525 | TEST acc=0.484 macroF1=0.470 UAR=0.486 | {'n_estimators': 300, 'max_depth': None}
+   test veri seti bazında: {'RAVDESS': 'acc=0.490 F1=0.416', 'CREMA-D': 'acc=0.483 F1=0.468'}
+k-NN           VAL acc=0.458 F1=0.439 | TEST acc=0.431 macroF1=0.411 UAR=0.433 | {'n_neighbors': 15}
+   test veri seti bazında: {'RAVDESS': 'acc=0.457 F1=0.422', 'CREMA-D': 'acc=0.427 F1=0.405'}
+MLP            VAL acc=0.530 F1=0.530 | TEST acc=0.487 macroF1=0.485 UAR=0.488 | {'hidden_layer_sizes': (256,), 'alpha': 0.0001}
+   test veri seti bazında: {'RAVDESS': 'acc=0.438 F1=0.436', 'CREMA-D': 'acc=0.496 F1=0.492'}
+
+| Model | Test doğruluk | Makro F1 | UAR | CREMA-D doğruluk | RAVDESS doğruluk |
+|---|---|---|---|---|---|
+| SVM (RBF) | 50.5% | 0.502 | 0.506 | 51.4% | 45.2% |
+| Random Forest | 48.4% | 0.470 | 0.486 | 48.3% | 49.0% |
+| k-NN | 43.1% | 0.411 | 0.433 | 42.7% | 45.7% |
+| MLP | 48.7% | 0.485 | 0.488 | 49.6% | 43.8% |
+
+Hedef (H3): test doğruluğu >= %55 -> ULAŞILAMADI

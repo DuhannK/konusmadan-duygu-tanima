@@ -3,5 +3,11 @@ pandas
 librosa
 soundfile
 scikit-learn
+scipy
 joblib
 matplotlib
+# Hafta 4
+torch                # CNN (Colab'da kurulu gelir)
+opensmile            # eGeMAPS / ComParE
+transformers         # wav2vec 2.0 gömmeleri
+streamlit>=1.39      # demo (st.audio_input için >= 1.39)

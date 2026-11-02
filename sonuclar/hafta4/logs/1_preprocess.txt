@@ -1,0 +1,47 @@
+8690 dosya yükleniyor ve temizleniyor...
+{
+  "totals": {
+    "train": 6648,
+    "val": 1438,
+    "test": 1436
+  },
+  "totals_by_dataset": {
+    "ravdess": {
+      "train": 1664,
+      "val": 208,
+      "test": 208
+    },
+    "cremad": {
+      "train": 4984,
+      "val": 1230,
+      "test": 1228
+    }
+  },
+  "counts": {
+    "train": {
+      "angry": 1107,
+      "happy": 1107,
+      "sad": 1107,
+      "fear": 1107,
+      "disgust": 1107,
+      "neutral": 1113
+    },
+    "val": {
+      "angry": 242,
+      "happy": 242,
+      "sad": 242,
+      "fear": 242,
+      "disgust": 242,
+      "neutral": 228
+    },
+    "test": {
+      "angry": 242,
+      "happy": 242,
+      "sad": 242,
+      "fear": 242,
+      "disgust": 242,
+      "neutral": 226
+    }
+  }
+}
+{'ravdess': {'train': 16, 'val': 4, 'test': 4}, 'cremad': {'train': 61, 'val': 15, 'test': 15}} <- konuşmacı sayıları

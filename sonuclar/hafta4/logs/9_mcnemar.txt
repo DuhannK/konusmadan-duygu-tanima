@@ -1,0 +1,20 @@
+## McNemar testi - tüm test kümesi
+| Model 1 | Model 2 | Doğruluk 1 | Doğruluk 2 | b | c | p | p (Holm) | Anlamlı? |
+|---|---|---|---|---|---|---|---|---|
+| SVM | RF | 49.0% | 48.7% | 165 | 160 | 0,824 | 0,824 | Hayır |
+| SVM | CNN | 49.0% | 54.8% | 196 | 279 | < 0,001 | < 0,001 | Evet |
+| RF | CNN | 48.7% | 54.8% | 163 | 251 | < 0,001 | < 0,001 | Evet |
+
+## McNemar testi - RAVDESS
+| Model 1 | Model 2 | Doğruluk 1 | Doğruluk 2 | b | c | p | p (Holm) | Anlamlı? |
+|---|---|---|---|---|---|---|---|---|
+| SVM | RF | 44.2% | 45.7% | 31 | 34 | 0,804 | 0,804 | Hayır |
+| SVM | CNN | 44.2% | 52.9% | 34 | 52 | 0,067 | 0,200 | Hayır |
+| RF | CNN | 45.7% | 52.9% | 34 | 49 | 0,124 | 0,249 | Hayır |
+
+## McNemar testi - CREMA-D
+| Model 1 | Model 2 | Doğruluk 1 | Doğruluk 2 | b | c | p | p (Holm) | Anlamlı? |
+|---|---|---|---|---|---|---|---|---|
+| SVM | RF | 49.8% | 49.2% | 134 | 126 | 0,664 | 0,664 | Hayır |
+| SVM | CNN | 49.8% | 55.1% | 162 | 227 | 0,001 | 0,002 | Evet |
+| RF | CNN | 49.2% | 55.1% | 129 | 202 | < 0,001 | < 0,001 | Evet |

@@ -1,0 +1,70 @@
+Öznitelik: feat 556 boyut | veri: all | k=5 | kat imzası c98739ffd4
+  kat 0: 1811 test kaydı, 24 konuşmacı
+  kat 1: 1736 test kaydı, 23 konuşmacı
+  kat 2: 1736 test kaydı, 23 konuşmacı
+  kat 3: 1729 test kaydı, 23 konuşmacı
+  kat 4: 1678 test kaydı, 22 konuşmacı
+Parametreler results_v3/results.json dosyasından alındı.
+20 iş, 12 paralel çekirdekte çalışıyor...
+kat 0 | SVM (RBF)      acc=0.511 F1=0.502 UAR=0.513 (68 sn) 
+kat 0 | Random Forest  acc=0.490 F1=0.464 UAR=0.493 (44 sn) 
+kat 0 | k-NN           acc=0.431 F1=0.415 UAR=0.433 (2 sn) 
+kat 0 | MLP            acc=0.516 F1=0.509 UAR=0.516 (21 sn) 
+kat 1 | SVM (RBF)      acc=0.548 F1=0.549 UAR=0.548 (69 sn) 
+kat 1 | Random Forest  acc=0.522 F1=0.515 UAR=0.523 (45 sn) 
+kat 1 | k-NN           acc=0.430 F1=0.424 UAR=0.431 (3 sn) 
+kat 1 | MLP            acc=0.540 F1=0.541 UAR=0.540 (22 sn) 
+kat 2 | SVM (RBF)      acc=0.512 F1=0.508 UAR=0.512 (69 sn) 
+kat 2 | Random Forest  acc=0.476 F1=0.457 UAR=0.478 (45 sn) 
+kat 2 | k-NN           acc=0.427 F1=0.415 UAR=0.428 (2 sn) 
+kat 2 | MLP            acc=0.512 F1=0.512 UAR=0.512 (31 sn) 
+kat 3 | SVM (RBF)      acc=0.525 F1=0.523 UAR=0.525 (68 sn) 
+kat 3 | Random Forest  acc=0.499 F1=0.490 UAR=0.499 (45 sn) 
+kat 3 | k-NN           acc=0.413 F1=0.409 UAR=0.413 (4 sn) 
+kat 3 | MLP            acc=0.493 F1=0.494 UAR=0.493 (41 sn) 
+kat 4 | SVM (RBF)      acc=0.537 F1=0.532 UAR=0.537 (50 sn) 
+kat 4 | Random Forest  acc=0.511 F1=0.497 UAR=0.513 (30 sn) 
+kat 4 | k-NN           acc=0.412 F1=0.399 UAR=0.414 (5 sn) 
+kat 4 | MLP            acc=0.518 F1=0.517 UAR=0.519 (14 sn) 
+
+# 5 katlı konuşmacı bazlı CV - öznitelik: feat (556), veri: all
+
+| Model | Doğruluk (ort ± ss) | Makro F1 (ort ± ss) | UAR (ort ± ss) | CREMA-D doğr. | RAVDESS doğr. |
+|---|---|---|---|---|---|
+| SVM (RBF) | 52.7 ± 1.4% | 0.523 ± 0.017 | 0.527 ± 0.014 | 53.1% | 49.8% |
+| Random Forest | 50.0 ± 1.6% | 0.485 ± 0.021 | 0.501 ± 0.016 | 50.2% | 48.5% |
+| k-NN | 42.3 ± 0.8% | 0.413 ± 0.008 | 0.424 ± 0.009 | 42.7% | 39.9% |
+| MLP | 51.6 ± 1.5% | 0.515 ± 0.015 | 0.516 ± 0.015 | 52.0% | 49.3% |
+
+## Sınıf bazında duyarlılık (OOF)
+
+| Model | angry | happy | sad | fear | disgust | neutral |
+|---|---|---|---|---|---|---|
+| SVM (RBF) | 69% | 51% | 56% | 43% | 42% | 55% |
+| Random Forest | 73% | 45% | 57% | 24% | 37% | 64% |
+| k-NN | 60% | 33% | 58% | 27% | 26% | 52% |
+| MLP | 65% | 51% | 53% | 43% | 44% | 53% |
+
+## McNemar testi (katlar dışı tahminler, Holm düzeltmeli)
+
+| Model 1 | Model 2 | Doğruluk 1 | Doğruluk 2 | b | c | p | p (Holm) | Anlamlı? |
+|---|---|---|---|---|---|---|---|---|
+| SVM (RBF) | Random Forest | 52.6% | 50.0% | 1126 | 893 | < 0,001 | < 0,001 | Evet |
+| SVM (RBF) | k-NN | 52.6% | 42.3% | 1825 | 926 | < 0,001 | < 0,001 | Evet |
+| SVM (RBF) | MLP | 52.6% | 51.6% | 809 | 718 | 0,021 | 0,021 | Evet |
+| Random Forest | k-NN | 50.0% | 42.3% | 1507 | 841 | < 0,001 | < 0,001 | Evet |
+| Random Forest | MLP | 50.0% | 51.6% | 1127 | 1269 | 0,004 | 0,008 | Evet |
+| k-NN | MLP | 42.3% | 51.6% | 1062 | 1870 | < 0,001 | < 0,001 | Evet |
+
+## Eşleştirilmiş t-testi (kat doğrulukları)
+
+| Model 1 | Model 2 | Ort. fark | p (t-testi) | p (Holm) | p (Nadeau-Bengio) |
+|---|---|---|---|---|---|
+| SVM (RBF) | Random Forest | +2.7 puan | < 0,001 | 0,002 | 0,002 |
+| SVM (RBF) | k-NN | +10.4 puan | < 0,001 | 0,002 | 0,001 |
+| SVM (RBF) | MLP | +1.1 puan | 0,179 | 0,179 | 0,328 |
+| Random Forest | k-NN | +7.7 puan | 0,001 | 0,004 | 0,006 |
+| Random Forest | MLP | -1.6 puan | 0,085 | 0,170 | 0,194 |
+| k-NN | MLP | -9.3 puan | < 0,001 | < 0,001 | < 0,001 |
+
+En iyi model: **SVM (RBF)** (52.7%). Anlamlılık düzeyi α = 0.05.

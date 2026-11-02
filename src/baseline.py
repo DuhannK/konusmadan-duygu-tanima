@@ -10,6 +10,8 @@ Kurallar (rapor Bölüm 2.5 / 2.7):
 
 Kullanım:
     python baseline.py --feat_dir /content/features --out_dir /content/results
+    python baseline.py --feat_dir /content/features --feat_name egemaps --out_dir /content/results_egemaps
+Hafta 4: --feat_name (feat | egemaps | compare | w2v) ve test tahminlerinin kaydı (pred_*.npy, McNemar için).
 """
 import argparse, json, itertools
 from pathlib import Path
@@ -30,11 +32,11 @@ LABELS = list(range(len(CLASSES)))
 SEED = 42
 
 
-def load(feat_dir):
+def load(feat_dir, feat_name="feat"):
     d = Path(feat_dir)
     out = {}
     for s in ["train", "val", "test"]:
-        out[s] = (np.load(d / f"feat_{s}.npy"), np.load(d / f"y_{s}.npy"))
+        out[s] = (np.load(d / f"{feat_name}_{s}.npy").astype(np.float32), np.load(d / f"y_{s}.npy"))
     ds = {s: (np.load(d / f"dataset_{s}.npy") if (d / f"dataset_{s}.npy").exists() else None)
           for s in ["train", "val", "test"]}
     return out, ds
@@ -78,14 +80,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--feat_dir", required=True)
     ap.add_argument("--out_dir", default="results")
+    ap.add_argument("--feat_name", default="feat", help="feat | egemaps | compare | w2v")
     ap.add_argument("--ablate_extras", action="store_true",
                     help="v2'nin son 4 ek özniteliğini ATARAK çalıştır (v1 ile adil karşılaştırma)")
     args = ap.parse_args()
     out = Path(args.out_dir); out.mkdir(parents=True, exist_ok=True)
 
-    D, DS = load(args.feat_dir)
+    D, DS = load(args.feat_dir, args.feat_name)
     DS_NAMES = {0: "RAVDESS", 1: "CREMA-D"}
-    if args.ablate_extras:
+    if args.ablate_extras and args.feat_name == "feat":
         D = {s: (X[:, :-4], y) for s, (X, y) in D.items()}
     print("Öznitelik sayısı:", D["train"][0].shape[1])
     scaler = StandardScaler().fit(D["train"][0])             # yalnızca train!
@@ -93,6 +96,9 @@ def main():
     Xva, yva = scaler.transform(D["val"][0]), D["val"][1]
     Xte, yte = scaler.transform(D["test"][0]), D["test"][1]
     joblib.dump(scaler, out / "scaler.joblib")
+    np.save(out / "y_test.npy", yte)                          # McNemar karşılaştırması için
+    if DS["test"] is not None:
+        np.save(out / "dataset_test.npy", DS["test"])
 
     results = {}
     for name, (grid, make) in candidates().items():
@@ -115,6 +121,7 @@ def main():
         tag = name.split()[0].lower().replace("-", "")
         plot_cm(cm, f"{name} - test", out / f"cm_{tag}.png")
         joblib.dump(model, out / f"model_{tag}.joblib")
+        np.save(out / f"pred_{tag}.npy", pred)
         results[name] = dict(params={k: (list(v) if isinstance(v, tuple) else v) for k, v in params.items()},
                              val=val_m, test=test_m, test_by_dataset=by_ds, confusion_matrix=cm.tolist())
         print(f"{name:14s} VAL acc={val_m['acc']:.3f} F1={val_m['macro_f1']:.3f} | TEST acc={test_m['acc']:.3f} "

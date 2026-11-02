@@ -1,0 +1,42 @@
+Cihaz: cuda | veri: all | toplam 9522 kayıt (artırılmış dahil)
+eğitim/doğrulama/test = 6648/1438/1436
+epok   1 | train_loss=1.690 train_acc=0.296 val_acc=0.284 val_f1=0.236 | 23 sn
+epok   2 | train_loss=1.593 train_acc=0.366 val_acc=0.286 val_f1=0.199 | 10 sn
+epok   3 | train_loss=1.545 train_acc=0.393 val_acc=0.228 val_f1=0.141 | 10 sn
+epok   4 | train_loss=1.507 train_acc=0.424 val_acc=0.264 val_f1=0.204 | 10 sn
+epok   5 | train_loss=1.481 train_acc=0.437 val_acc=0.462 val_f1=0.421 | 10 sn
+epok   6 | train_loss=1.465 train_acc=0.451 val_acc=0.314 val_f1=0.248 | 10 sn
+epok   7 | train_loss=1.453 train_acc=0.459 val_acc=0.401 val_f1=0.325 | 10 sn
+epok   8 | train_loss=1.455 train_acc=0.451 val_acc=0.469 val_f1=0.423 | 10 sn
+epok   9 | train_loss=1.421 train_acc=0.478 val_acc=0.508 val_f1=0.471 | 10 sn
+epok  10 | train_loss=1.410 train_acc=0.484 val_acc=0.460 val_f1=0.442 | 10 sn
+epok  11 | train_loss=1.404 train_acc=0.491 val_acc=0.227 val_f1=0.112 | 10 sn
+epok  12 | train_loss=1.399 train_acc=0.495 val_acc=0.447 val_f1=0.385 | 10 sn
+epok  13 | train_loss=1.382 train_acc=0.508 val_acc=0.413 val_f1=0.389 | 10 sn
+epok  14 | train_loss=1.373 train_acc=0.509 val_acc=0.352 val_f1=0.284 | 10 sn
+epok  15 | train_loss=1.345 train_acc=0.523 val_acc=0.447 val_f1=0.440 | 10 sn
+epok  16 | train_loss=1.351 train_acc=0.528 val_acc=0.438 val_f1=0.401 | 10 sn
+epok  17 | train_loss=1.334 train_acc=0.534 val_acc=0.341 val_f1=0.266 | 10 sn
+epok  18 | train_loss=1.308 train_acc=0.553 val_acc=0.492 val_f1=0.447 | 10 sn
+epok  19 | train_loss=1.302 train_acc=0.552 val_acc=0.429 val_f1=0.377 | 10 sn
+epok  20 | train_loss=1.292 train_acc=0.555 val_acc=0.513 val_f1=0.473 | 10 sn
+epok  21 | train_loss=1.266 train_acc=0.570 val_acc=0.437 val_f1=0.381 | 10 sn
+epok  22 | train_loss=1.276 train_acc=0.565 val_acc=0.599 val_f1=0.592 | 10 sn
+epok  23 | train_loss=1.252 train_acc=0.583 val_acc=0.414 val_f1=0.336 | 10 sn
+epok  24 | train_loss=1.233 train_acc=0.593 val_acc=0.335 val_f1=0.303 | 10 sn
+epok  25 | train_loss=1.224 train_acc=0.601 val_acc=0.476 val_f1=0.451 | 10 sn
+epok  26 | train_loss=1.205 train_acc=0.609 val_acc=0.469 val_f1=0.431 | 10 sn
+epok  27 | train_loss=1.194 train_acc=0.618 val_acc=0.565 val_f1=0.561 | 10 sn
+epok  28 | train_loss=1.181 train_acc=0.616 val_acc=0.532 val_f1=0.515 | 10 sn
+epok  29 | train_loss=1.169 train_acc=0.634 val_acc=0.541 val_f1=0.535 | 10 sn
+epok  30 | train_loss=1.150 train_acc=0.639 val_acc=0.604 val_f1=0.592 | 10 sn
+epok  31 | train_loss=1.144 train_acc=0.648 val_acc=0.595 val_f1=0.589 | 10 sn
+epok  32 | train_loss=1.119 train_acc=0.658 val_acc=0.489 val_f1=0.472 | 10 sn
+epok  33 | train_loss=1.116 train_acc=0.663 val_acc=0.462 val_f1=0.443 | 10 sn
+epok  34 | train_loss=1.088 train_acc=0.679 val_acc=0.492 val_f1=0.471 | 10 sn
+erken durdurma (en iyi val F1 = 0.592)
+
+CNN TEST acc=0.548 makroF1=0.536 UAR=0.549 | en iyi epok 22 | 1.17 M parametre
+   RAVDESS: acc=0.529 F1=0.517
+   CREMA-D: acc=0.551 F1=0.539
+Hedef (H4): doğruluk >= %65 ve makro F1 >= 0,60 -> ULAŞILAMADI

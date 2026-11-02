@@ -1,0 +1,35 @@
+Cihaz: cuda | veri: ravdess | toplam 2080 kayıt (artırılmış dahil)
+eğitim/doğrulama/test = 1664/208/208
+epok   1 | train_loss=1.782 train_acc=0.228 val_acc=0.231 val_f1=0.062 | 17 sn
+epok   2 | train_loss=1.696 train_acc=0.285 val_acc=0.264 val_f1=0.125 | 2 sn
+epok   3 | train_loss=1.633 train_acc=0.346 val_acc=0.288 val_f1=0.161 | 2 sn
+epok   4 | train_loss=1.558 train_acc=0.405 val_acc=0.279 val_f1=0.144 | 2 sn
+epok   5 | train_loss=1.541 train_acc=0.403 val_acc=0.293 val_f1=0.203 | 2 sn
+epok   6 | train_loss=1.484 train_acc=0.442 val_acc=0.409 val_f1=0.370 | 2 sn
+epok   7 | train_loss=1.466 train_acc=0.460 val_acc=0.361 val_f1=0.275 | 2 sn
+epok   8 | train_loss=1.433 train_acc=0.479 val_acc=0.418 val_f1=0.308 | 2 sn
+epok   9 | train_loss=1.413 train_acc=0.496 val_acc=0.399 val_f1=0.342 | 2 sn
+epok  10 | train_loss=1.427 train_acc=0.475 val_acc=0.188 val_f1=0.095 | 2 sn
+epok  11 | train_loss=1.360 train_acc=0.531 val_acc=0.154 val_f1=0.045 | 2 sn
+epok  12 | train_loss=1.333 train_acc=0.562 val_acc=0.303 val_f1=0.233 | 2 sn
+epok  13 | train_loss=1.325 train_acc=0.551 val_acc=0.260 val_f1=0.201 | 2 sn
+epok  14 | train_loss=1.350 train_acc=0.530 val_acc=0.183 val_f1=0.097 | 2 sn
+epok  15 | train_loss=1.287 train_acc=0.570 val_acc=0.269 val_f1=0.206 | 2 sn
+epok  16 | train_loss=1.259 train_acc=0.587 val_acc=0.519 val_f1=0.443 | 2 sn
+epok  17 | train_loss=1.230 train_acc=0.584 val_acc=0.413 val_f1=0.322 | 2 sn
+epok  18 | train_loss=1.205 train_acc=0.623 val_acc=0.250 val_f1=0.180 | 2 sn
+epok  19 | train_loss=1.184 train_acc=0.629 val_acc=0.255 val_f1=0.180 | 2 sn
+epok  20 | train_loss=1.177 train_acc=0.635 val_acc=0.298 val_f1=0.185 | 2 sn
+epok  21 | train_loss=1.152 train_acc=0.651 val_acc=0.341 val_f1=0.188 | 2 sn
+epok  22 | train_loss=1.114 train_acc=0.657 val_acc=0.163 val_f1=0.071 | 2 sn
+epok  23 | train_loss=1.068 train_acc=0.692 val_acc=0.332 val_f1=0.296 | 2 sn
+epok  24 | train_loss=1.071 train_acc=0.677 val_acc=0.312 val_f1=0.204 | 2 sn
+epok  25 | train_loss=1.053 train_acc=0.704 val_acc=0.356 val_f1=0.197 | 2 sn
+epok  26 | train_loss=1.038 train_acc=0.733 val_acc=0.317 val_f1=0.252 | 2 sn
+epok  27 | train_loss=1.007 train_acc=0.741 val_acc=0.409 val_f1=0.356 | 2 sn
+epok  28 | train_loss=1.008 train_acc=0.739 val_acc=0.404 val_f1=0.359 | 2 sn
+erken durdurma (en iyi val F1 = 0.443)
+
+CNN TEST acc=0.476 makroF1=0.352 UAR=0.432 | en iyi epok 16 | 1.17 M parametre
+   RAVDESS: acc=0.476 F1=0.352
+Hedef (H4): doğruluk >= %65 ve makro F1 >= 0,60 -> ULAŞILAMADI
