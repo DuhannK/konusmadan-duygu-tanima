@@ -1,0 +1,43 @@
+Model: CNN | cihaz: cuda | veri: all | toplam 9522 kayıt (artırılmış dahil)
+[kat 1] ön uç kontrolü: 7526 örnek, NaN/Inf 0, tamamen sessiz 1
+[kat 1] epok   1 | train_loss=1.677 train_acc=0.309 | 38 sn
+[kat 1] epok   2 | train_loss=1.583 train_acc=0.370 | 24 sn
+[kat 1] epok   3 | train_loss=1.526 train_acc=0.403 | 33 sn
+[kat 1] epok   4 | train_loss=1.519 train_acc=0.411 | 32 sn
+[kat 1] epok   5 | train_loss=1.494 train_acc=0.431 | 44 sn
+[kat 1] epok   6 | train_loss=1.471 train_acc=0.450 | 45 sn
+[kat 1] epok   7 | train_loss=1.459 train_acc=0.450 | 55 sn
+[kat 1] epok   8 | train_loss=1.447 train_acc=0.455 | 55 sn
+[kat 1] epok   9 | train_loss=1.436 train_acc=0.469 | 56 sn
+[kat 1] epok  10 | train_loss=1.412 train_acc=0.483 | 56 sn
+[kat 1] epok  11 | train_loss=1.398 train_acc=0.491 | 56 sn
+[kat 1] epok  12 | train_loss=1.384 train_acc=0.499 | 56 sn
+[kat 1] epok  13 | train_loss=1.358 train_acc=0.517 | 56 sn
+[kat 1] epok  14 | train_loss=1.350 train_acc=0.527 | 56 sn
+[kat 1] epok  15 | train_loss=1.339 train_acc=0.539 | 56 sn
+[kat 1] epok  16 | train_loss=1.318 train_acc=0.541 | 56 sn
+[kat 1] epok  17 | train_loss=1.298 train_acc=0.556 | 56 sn
+[kat 1] epok  18 | train_loss=1.292 train_acc=0.558 | 56 sn
+[kat 1] epok  19 | train_loss=1.272 train_acc=0.574 | 56 sn
+[kat 1] epok  20 | train_loss=1.261 train_acc=0.582 | 56 sn
+[kat 1] epok  21 | train_loss=1.247 train_acc=0.587 | 56 sn
+[kat 1] epok  22 | train_loss=1.232 train_acc=0.597 | 56 sn
+[kat 1] epok  23 | train_loss=1.214 train_acc=0.605 | 56 sn
+[kat 1] epok  24 | train_loss=1.193 train_acc=0.615 | 56 sn
+[kat 1] epok  25 | train_loss=1.187 train_acc=0.620 | 56 sn
+[kat 1] epok  26 | train_loss=1.166 train_acc=0.627 | 56 sn
+[kat 1] epok  27 | train_loss=1.151 train_acc=0.636 | 56 sn
+[kat 1] epok  28 | train_loss=1.139 train_acc=0.646 | 56 sn
+[kat 1] epok  29 | train_loss=1.128 train_acc=0.656 | 56 sn
+[kat 1] epok  30 | train_loss=1.103 train_acc=0.669 | 56 sn
+[kat 1] epok  31 | train_loss=1.081 train_acc=0.678 | 56 sn
+[kat 1] epok  32 | train_loss=1.069 train_acc=0.685 | 56 sn
+[kat 1] epok  33 | train_loss=1.053 train_acc=0.699 | 56 sn
+[kat 1] epok  34 | train_loss=1.032 train_acc=0.710 | 56 sn
+[kat 1] epok  35 | train_loss=1.022 train_acc=0.710 | 56 sn
+[kat 1] epok  36 | train_loss=1.015 train_acc=0.714 | 56 sn
+[kat 1] epok  37 | train_loss=1.006 train_acc=0.723 | 51 sn
+[kat 1] epok  38 | train_loss=0.999 train_acc=0.733 | 45 sn
+[kat 1] epok  39 | train_loss=0.994 train_acc=0.727 | 45 sn
+[kat 1] epok  40 | train_loss=0.997 train_acc=0.727 | 45 sn
+[kat 1] TEST acc=0.691 F1=0.690 UAR=0.692

@@ -1,0 +1,49 @@
+Model: CNN-LSTM | cihaz: cuda | veri: all | toplam 9522 kayıt (artırılmış dahil)
+eğitim/doğrulama/test = 6648/1438/1436
+ön uç kontrolü: 6648 örnek, NaN/Inf 0, tamamen sessiz 0
+epok   1 | train_loss=1.675 train_acc=0.315 val_acc=0.341 val_f1=0.283 | 40 sn
+epok   2 | train_loss=1.575 train_acc=0.388 val_acc=0.291 val_f1=0.220 | 21 sn
+epok   3 | train_loss=1.509 train_acc=0.415 val_acc=0.247 val_f1=0.178 | 21 sn
+epok   4 | train_loss=1.465 train_acc=0.452 val_acc=0.407 val_f1=0.346 | 21 sn
+epok   5 | train_loss=1.450 train_acc=0.459 val_acc=0.369 val_f1=0.322 | 22 sn
+epok   6 | train_loss=1.429 train_acc=0.472 val_acc=0.303 val_f1=0.202 | 21 sn
+epok   7 | train_loss=1.412 train_acc=0.476 val_acc=0.426 val_f1=0.376 | 21 sn
+epok   8 | train_loss=1.419 train_acc=0.474 val_acc=0.439 val_f1=0.419 | 21 sn
+epok   9 | train_loss=1.395 train_acc=0.493 val_acc=0.446 val_f1=0.407 | 21 sn
+epok  10 | train_loss=1.367 train_acc=0.499 val_acc=0.462 val_f1=0.419 | 21 sn
+epok  11 | train_loss=1.363 train_acc=0.513 val_acc=0.470 val_f1=0.417 | 21 sn
+epok  12 | train_loss=1.341 train_acc=0.526 val_acc=0.406 val_f1=0.353 | 21 sn
+epok  13 | train_loss=1.317 train_acc=0.541 val_acc=0.490 val_f1=0.470 | 21 sn
+epok  14 | train_loss=1.298 train_acc=0.550 val_acc=0.523 val_f1=0.478 | 21 sn
+epok  15 | train_loss=1.273 train_acc=0.562 val_acc=0.485 val_f1=0.486 | 21 sn
+epok  16 | train_loss=1.265 train_acc=0.572 val_acc=0.549 val_f1=0.552 | 21 sn
+epok  17 | train_loss=1.246 train_acc=0.590 val_acc=0.435 val_f1=0.412 | 21 sn
+epok  18 | train_loss=1.230 train_acc=0.592 val_acc=0.427 val_f1=0.398 | 21 sn
+epok  19 | train_loss=1.215 train_acc=0.593 val_acc=0.493 val_f1=0.463 | 21 sn
+epok  20 | train_loss=1.201 train_acc=0.606 val_acc=0.488 val_f1=0.442 | 21 sn
+epok  21 | train_loss=1.165 train_acc=0.620 val_acc=0.404 val_f1=0.379 | 21 sn
+epok  22 | train_loss=1.163 train_acc=0.625 val_acc=0.515 val_f1=0.504 | 21 sn
+epok  23 | train_loss=1.144 train_acc=0.637 val_acc=0.556 val_f1=0.541 | 21 sn
+epok  24 | train_loss=1.116 train_acc=0.653 val_acc=0.487 val_f1=0.458 | 21 sn
+epok  25 | train_loss=1.100 train_acc=0.662 val_acc=0.569 val_f1=0.557 | 21 sn
+epok  26 | train_loss=1.075 train_acc=0.677 val_acc=0.595 val_f1=0.589 | 21 sn
+epok  27 | train_loss=1.059 train_acc=0.686 val_acc=0.627 val_f1=0.625 | 21 sn
+epok  28 | train_loss=1.045 train_acc=0.690 val_acc=0.623 val_f1=0.623 | 21 sn
+epok  29 | train_loss=1.013 train_acc=0.714 val_acc=0.599 val_f1=0.590 | 21 sn
+epok  30 | train_loss=0.990 train_acc=0.719 val_acc=0.561 val_f1=0.533 | 21 sn
+epok  31 | train_loss=0.973 train_acc=0.729 val_acc=0.636 val_f1=0.639 | 21 sn
+epok  32 | train_loss=0.959 train_acc=0.741 val_acc=0.592 val_f1=0.598 | 21 sn
+epok  33 | train_loss=0.943 train_acc=0.745 val_acc=0.595 val_f1=0.593 | 21 sn
+epok  34 | train_loss=0.923 train_acc=0.752 val_acc=0.627 val_f1=0.622 | 21 sn
+epok  35 | train_loss=0.908 train_acc=0.769 val_acc=0.623 val_f1=0.621 | 21 sn
+epok  36 | train_loss=0.879 train_acc=0.781 val_acc=0.639 val_f1=0.638 | 21 sn
+epok  37 | train_loss=0.874 train_acc=0.780 val_acc=0.636 val_f1=0.635 | 21 sn
+epok  38 | train_loss=0.865 train_acc=0.789 val_acc=0.636 val_f1=0.637 | 21 sn
+epok  39 | train_loss=0.858 train_acc=0.791 val_acc=0.638 val_f1=0.638 | 21 sn
+epok  40 | train_loss=0.856 train_acc=0.801 val_acc=0.638 val_f1=0.639 | 12 sn
+en iyi doğrulama epoğu geri yüklendi (val F1 = 0.639)
+
+CNN-LSTM TEST acc=0.609 makroF1=0.608 UAR=0.610 | en iyi epok 31 | 1.57 M parametre
+   RAVDESS: acc=0.644 F1=0.629
+   CREMA-D: acc=0.603 F1=0.602
+Hedef (H4): doğruluk >= %65 ve makro F1 >= 0,60 -> ULAŞILAMADI

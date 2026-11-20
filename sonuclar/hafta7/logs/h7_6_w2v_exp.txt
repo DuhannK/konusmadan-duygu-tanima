@@ -1,0 +1,36 @@
+wav2vec katmanları: (9522, 13, 768) | veri: all | çekirdek: 12
+Katman başına doğrulama makro F1 (SVM C=10):
+   katman  0: 0.595
+   katman  1: 0.625
+   katman  2: 0.656
+   katman  3: 0.683
+   katman  4: 0.700
+   katman  5: 0.710
+   katman  6: 0.713
+   katman  7: 0.703
+   katman  8: 0.693
+   katman  9: 0.695
+   katman 10: 0.686
+   katman 11: 0.633
+   katman 12: 0.599
+tek_en_iyi   katmanlar=[5] | VAL F1=0.710 | TEST acc=0.682 F1=0.681 UAR=0.683 | {'C': 1, 'gamma': 0.001} (59 sn)
+tum_ort      katmanlar=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] | VAL F1=0.727 | TEST acc=0.698 F1=0.696 UAR=0.698 | {'C': 10, 'gamma': 0.0003} (52 sn)
+orta_ort     katmanlar=[3, 4, 5, 6, 7, 8, 9] | VAL F1=0.731 | TEST acc=0.686 F1=0.683 UAR=0.687 | {'C': 1, 'gamma': 'scale'} (57 sn)
+en_iyi_3     katmanlar=[5, 6, 7] | VAL F1=0.723 | TEST acc=0.694 F1=0.692 UAR=0.695 | {'C': 1, 'gamma': 'scale'} (58 sn)
+
+Doğrulamaya göre seçilen strateji: orta_ort [3, 4, 5, 6, 7, 8, 9]
+CV tek_en_iyi  : doğruluk 70.5 ± 1.8% | makro F1 0.704 ± 0.018 (37 sn)
+CV tum_ort     : doğruluk 72.0 ± 2.6% | makro F1 0.720 ± 0.026 (27 sn)
+CV orta_ort    : doğruluk 71.2 ± 2.2% | makro F1 0.711 ± 0.022 (36 sn)
+CV en_iyi_3    : doğruluk 71.3 ± 2.0% | makro F1 0.712 ± 0.020 (37 sn)
+
+# wav2vec 2.0 katman birleşimi - veri: all
+
+| Strateji | Katmanlar | Val makro F1 | Test doğruluk | Test makro F1 | CV doğruluk |
+|---|---|---|---|---|---|
+| tek_en_iyi | [5] | 0.710 | 68.2% | 0.681 | 70.5 ± 1.8% |
+| tum_ort | [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] | 0.727 | 69.8% | 0.696 | 72.0 ± 2.6% |
+| orta_ort ✓ | [3, 4, 5, 6, 7, 8, 9] | 0.731 | 68.6% | 0.683 | 71.2 ± 2.2% |
+| en_iyi_3 | [5, 6, 7] | 0.723 | 69.4% | 0.692 | 71.3 ± 2.0% |
+
+✓ = doğrulama makro F1'ine göre seçilen strateji. Arayüz modeli: `w2v_exp_all/model`

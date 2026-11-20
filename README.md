@@ -83,7 +83,8 @@ streamlit run src/app.py -- --cnn cnn_all/cnn_best.pt --classic_dir results_v3
 ### Hafta 7
 ```bash
 # 10) Düzeltilmiş CNN ve CNN-LSTM - birleşik veri, tek bölümleme ve 5 katlı CV (H4/H5)
-#     --parallel 5: 5 kat aynı anda GPU'da (GPU belleği yettiği kadar; sonuçlar sıralı çalıştırmayla aynı)
+#     --parallel 5: 5 kat aynı anda GPU'da (sonuçlar sıralıyla aynı). L4'te tek eğitim GPU'yu zaten doldurduğu
+#     için süre kazancı olmadı (~38 dk / model); bellek yetmezliğinde katlar sırayla yeniden çalışır.
 python src/cnn.py --in_dir processed_v3 --dataset all --model cnn      --out_dir cnn_all
 python src/cnn.py --in_dir processed_v3 --dataset all --model cnn_lstm --out_dir cnn_lstm_all
 python src/cnn.py --in_dir processed_v3 --dataset all --model cnn      --cv 5 --parallel 5 --out_dir cnn_cv_all

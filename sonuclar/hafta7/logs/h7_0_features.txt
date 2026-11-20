@@ -1,0 +1,5 @@
+train {'n': 6648, 'feat_shape': [6648, 556]}
+val {'n': 1438, 'feat_shape': [1438, 556]}
+/usr/local/lib/python3.13/dist-packages/librosa/core/pitch.py:103: UserWarning: Trying to estimate tuning from empty frequency set.
+  return pitch_tuning(
+test {'n': 1436, 'feat_shape': [1436, 556]}

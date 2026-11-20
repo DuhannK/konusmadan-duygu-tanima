@@ -144,15 +144,20 @@ def predict_w2v(fe, encoder, scaler, svm, layers, W):
     """Her pencereyi wav2vec'ten geçir, seçilen katman(lar)ı ortala, zaman-ortala, SVM ile tahmin et.
     Hafta 7 düzeltmesi: sondaki sıfır dolgusu, eğitimdeki gibi (extra_features.strip_pad) kodlayıcıya
     verilmeden ÖNCE kesilir; önceki sürüm dolguyu da kodlayıcıya veriyordu (eğitim/kullanım farkı)."""
+    import torch
     embs = []
     for w in W:
         nz = np.flatnonzero(w)
         real_len = max(int(nz[-1] + 1) if nz.size else len(w), SR // 2)   # en az 0,5 sn (strip_pad ile aynı)
         w = w[:real_len]
         inp = fe([w], sampling_rate=SR, return_tensors="pt", padding=True)
-        hs = encoder(inp["input_values"]).hidden_states         # (L+1) x (1,T,D)
-        h = sum(hs[l][0] for l in layers) / len(layers)          # (T,D) seçilen katmanların ortalaması
-        embs.append(h.mean(0).numpy())
+        # Hafta 7 düzeltmesi: gradyan her çağrıda kapatılır. get_w2v_encoder içindeki set_grad_enabled(False)
+        # yalnızca modelin ilk yüklendiği iş parçacığında geçerliydi; Streamlit her etkileşimi başka bir iş
+        # parçacığında çalıştırdığı için ikinci tahminden itibaren "Can't call numpy() ... requires grad" hatası çıkıyordu.
+        with torch.no_grad():
+            hs = encoder(inp["input_values"]).hidden_states     # (L+1) x (1,T,D)
+            h = sum(hs[l][0] for l in layers) / len(layers)      # (T,D) seçilen katmanların ortalaması
+            embs.append(h.mean(0).detach().cpu().numpy())
     Z = scaler.transform(np.stack(embs).astype(np.float32))
     if hasattr(svm, "predict_proba"):
         return svm.predict_proba(Z).mean(0), True
