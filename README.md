@@ -83,10 +83,11 @@ streamlit run src/app.py -- --cnn cnn_all/cnn_best.pt --classic_dir results_v3
 ### Hafta 7
 ```bash
 # 10) Düzeltilmiş CNN ve CNN-LSTM - birleşik veri, tek bölümleme ve 5 katlı CV (H4/H5)
+#     --parallel 5: 5 kat aynı anda GPU'da (GPU belleği yettiği kadar; sonuçlar sıralı çalıştırmayla aynı)
 python src/cnn.py --in_dir processed_v3 --dataset all --model cnn      --out_dir cnn_all
 python src/cnn.py --in_dir processed_v3 --dataset all --model cnn_lstm --out_dir cnn_lstm_all
-python src/cnn.py --in_dir processed_v3 --dataset all --model cnn      --cv 5 --out_dir cnn_cv_all
-python src/cnn.py --in_dir processed_v3 --dataset all --model cnn_lstm --cv 5 --out_dir cnn_lstm_cv_all
+python src/cnn.py --in_dir processed_v3 --dataset all --model cnn      --cv 5 --parallel 5 --out_dir cnn_cv_all
+python src/cnn.py --in_dir processed_v3 --dataset all --model cnn_lstm --cv 5 --parallel 5 --out_dir cnn_lstm_cv_all
 
 # 11) wav2vec 2.0 katman birleşimi (extra_features.py --sets w2v çıktısını kullanır)
 python src/w2v_experiments.py --in_dir processed_v3 --feat_dir features_v3 --dataset all --cv_all --out_dir w2v_exp_all

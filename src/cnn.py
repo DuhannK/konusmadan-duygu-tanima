@@ -23,8 +23,10 @@ Kullanım (Colab GPU):
   # Konuşmacı bazlı 5 katlı CV (cv_eval.py ile aynı katlar; sabit epok, doğrulama kümesi kullanılmaz):
   python src/cnn.py --in_dir processed_v3 --dataset all --model cnn      --cv 5 --out_dir cnn_cv_all
   python src/cnn.py --in_dir processed_v3 --dataset all --model cnn_lstm --cv 5 --out_dir cnn_lstm_cv_all
+  # Hızlı: 5 katı aynı anda GPU'da eğit (her kat sıralı moddaki tohumla eğitilir)
+  python src/cnn.py --in_dir processed_v3 --dataset all --model cnn --cv 5 --parallel 5 --out_dir cnn_cv_all
 """
-import argparse, json, math, random, time
+import argparse, json, math, os, random, time
 from pathlib import Path
 import numpy as np
 import torch
@@ -214,7 +216,8 @@ def train_model(Xtr, ytr, Xva, yva, args, device, log_prefix=""):
     best, best_state, bad, hist = -1, None, 0, []
     for ep in range(1, args.epochs + 1):
         model.train(); t0 = time.time()
-        perm = torch.randperm(len(Xtr), device=device); tot, correct, n = 0.0, 0, 0
+        perm = torch.randperm(len(Xtr), device=device)
+        tot = torch.zeros((), device=device); correct = torch.zeros((), device=device); n = 0
         for i in range(0, len(perm), args.batch):
             b = perm[i:i + args.batch]
             xb = time_shift(Xtr_d[b], max_shift)
@@ -223,8 +226,8 @@ def train_model(Xtr, ytr, Xva, yva, args, device, log_prefix=""):
                 out = model(xb); loss = crit(out.float(), yb)
             opt.zero_grad(set_to_none=True)
             scaler.scale(loss).backward(); scaler.step(opt); scaler.update(); sched.step()
-            tot += loss.item() * len(b); correct += (out.argmax(1) == yb).sum().item(); n += len(b)
-        h = dict(epoch=ep, train_loss=tot / n, train_acc=correct / n)
+            tot += loss.detach().float() * len(b); correct += (out.argmax(1) == yb).sum(); n += len(b)
+        h = dict(epoch=ep, train_loss=tot.item() / n, train_acc=correct.item() / n)   # epok sonunda tek eşitleme
         if Xva is not None:
             pv = predict(model, Xva_d, device, bs=max(128, args.batch)).argmax(1)
             h.update(val_acc=float((pv == yva).mean()), val_f1=float(f1_score(yva, pv, average="macro")))
@@ -243,6 +246,72 @@ def train_model(Xtr, ytr, Xva, yva, args, device, log_prefix=""):
         model.load_state_dict(best_state)
         print(f"{log_prefix}en iyi doğrulama epoğu geri yüklendi (val F1 = {best:.3f})")
     return model, hist
+
+
+def _gpu_mem():
+    """(kullanılan, boş) GPU belleği, MiB. nvidia-smi yoksa (None, None)."""
+    import subprocess
+    try:
+        r = subprocess.run(["nvidia-smi", "--query-gpu=memory.used,memory.free", "--format=csv,noheader,nounits"],
+                           capture_output=True, text=True, timeout=10)
+        used, free = (float(v) for v in r.stdout.strip().splitlines()[0].split(","))
+        return used, free
+    except Exception:
+        return None, None
+
+
+def run_folds_parallel(args, out, tag):
+    """Hafta 7 hızlandırma: CV katlarını ayrı süreçler olarak aynı anda GPU'da çalıştırır.
+    Model küçük olduğu için tek bir eğitim GPU'nun ancak bir kısmını kullanır. Her kat sıralı moddaki ile aynı
+    tohumla (seed + kat) eğitilir. Bellek yetmezliği vb. nedenle başarısız olan katlar çağıran tarafından
+    sırayla yeniden çalıştırılır. Kat günlükleri: <out_dir>/kat<k>_<model>.log"""
+    import subprocess, sys
+    env = dict(os.environ, PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True")
+    base = [sys.executable, "-u", str(Path(__file__).resolve())] + sys.argv[1:]
+    queue, running, results = list(range(args.cv)), {}, {}
+    t0, last = time.time(), time.time()
+    base_used, _ = _gpu_mem()
+    print(f"{args.cv} kat, aynı anda en fazla {args.parallel} süreç (GPU belleği yettiği kadar)", flush=True)
+
+    def warmed_up(f):                                         # kat ilk epoğunu bitirdi mi (bellek oturdu mu)?
+        txt = (out / f"kat{f}_{tag}.log").read_text(errors="ignore")
+        return "epok   1" in txt or "TEST" in txt
+
+    while queue or running:
+        if queue and len(running) < args.parallel and all(warmed_up(f) for f in running):
+            used, free = _gpu_mem()
+            need = 1.25 * (used - base_used) / len(running) if running and used is not None else 0
+            if free is None or not running or free > need:
+                f = queue.pop(0)
+                log = open(out / f"kat{f}_{tag}.log", "w")
+                running[f] = (subprocess.Popen(base + ["--only_fold", str(f), "--parallel", "1"],
+                                               stdout=log, stderr=subprocess.STDOUT, env=env), log)
+                if used is not None:
+                    print(f"[kat {f}] başlatıldı | aynı anda {len(running)} kat | GPU: {used/1024:.1f} GB dolu, "
+                          f"{free/1024:.1f} GB boş", flush=True)
+                continue
+        for f, (p, log) in list(running.items()):
+            if p.poll() is not None:
+                log.close(); del running[f]
+                res = out / f"_kat{f}_{tag}.npz"
+                if p.returncode == 0 and res.exists():
+                    z = np.load(res, allow_pickle=False)
+                    results[f] = (z["te_pos"], z["pred"], json.loads(str(z["metrics"])))
+                    res.unlink()
+                    print(f"[kat {f}] bitti ({(time.time() - t0) / 60:.1f} dk): "
+                          f"acc={results[f][2]['acc']:.3f} F1={results[f][2]['macro_f1']:.3f}", flush=True)
+                else:
+                    tail = (out / f"kat{f}_{tag}.log").read_text(errors="ignore").strip().splitlines()[-3:]
+                    print(f"[kat {f}] BAŞARISIZ (çıkış kodu {p.returncode}); sonra sırayla denenecek. "
+                          f"Son satırlar: {tail}", flush=True)
+        if running and time.time() - last > 120:              # 2 dakikada bir ilerleme özeti
+            last = time.time()
+            for f in running:
+                ep = [l for l in (out / f"kat{f}_{tag}.log").read_text(errors="ignore").splitlines() if "epok" in l]
+                now = ep[-1].split("|")[0].split("] ")[-1].strip() if ep else "başlıyor"
+                print(f"   [kat {f}] {now} / {args.epochs}  ({(time.time() - t0) / 60:.1f} dk)", flush=True)
+        time.sleep(5)
+    return results
 
 
 def save_ckpt(model, args, path, extra=None):
@@ -284,6 +353,9 @@ def main():
     ap.add_argument("--patience", type=int, default=0, help="0 = erken durdurma kapalı (önerilen)")
     ap.add_argument("--cv", type=int, default=0, help="k > 0 ise konuşmacı bazlı k katlı CV (sabit epok)")
     ap.add_argument("--demographics", help="CV için (cv_eval.py ile aynı verilmeli)")
+    ap.add_argument("--parallel", type=int, default=1,
+                    help="CV'de aynı anda GPU'da eğitilecek kat sayısı (sonuçlar sıralı çalıştırmayla aynıdır)")
+    ap.add_argument("--only_fold", type=int, default=None, help=argparse.SUPPRESS)   # iç kullanım (alt süreç)
     ap.add_argument("--seed", type=int, default=42)
     args = ap.parse_args()
 
@@ -297,29 +369,51 @@ def main():
     torch.backends.cudnn.benchmark = True             # sabit girdi boyutu (128x301) -> en hızlı konvolüsyon seçilir
     out = Path(args.out_dir); out.mkdir(parents=True, exist_ok=True)
     pool = pooled_metadata(args.in_dir)
-    X = load_pooled(args.in_dir, "X", args.in_dir).astype(np.float32)
+    parent_parallel = args.cv and args.parallel > 1 and args.only_fold is None
+    X = None if parent_parallel else load_pooled(args.in_dir, "X", args.in_dir).astype(np.float32)
     y = pool.label.to_numpy().astype(np.int64)
     sel = select_dataset(pool, args.dataset)
     is_aug = pool.is_aug.to_numpy()
     dsid = (pool.dataset == "cremad").to_numpy().astype(int)
     print(f"Model: {name} | cihaz: {device} | veri: {args.dataset} | toplam {sel.sum()} kayıt (artırılmış dahil)")
-    json.dump(vars(args), open(out / "args.json", "w"), indent=2)
+    if args.only_fold is None:
+        json.dump(vars(args), open(out / "args.json", "w"), indent=2)
 
     if args.cv:                                                                     # ---------- CV modu
         folds = make_folds(pool, args.cv, args.seed, args.demographics)
         check_no_leak(pool, folds, sel)
         eval_idx = np.where(sel & ~is_aug)[0]
         f_oof, y_oof = folds[eval_idx], y[eval_idx]
-        oof = np.full(len(eval_idx), -1); fold_m = []
-        for f in range(args.cv):
+
+        def run_fold(f, X):
+            """Tek bir katı eğitir ve test katında tahmin eder (sıralı ve paralel modda aynı kod)."""
             set_seed(args.seed + f)
             tr = np.where(sel & (folds != f) & (~is_aug if args.no_aug else True))[0]
             te_pos = np.where(f_oof == f)[0]; te = eval_idx[te_pos]
             model, hist = train_model(X[tr], y[tr], None, None, args, device, log_prefix=f"[kat {f}] ")
             pred = predict(model, X[te], device).argmax(1)
-            oof[te_pos] = pred
-            m = metrics(y[te], pred); fold_m.append(m)
-            print(f"[kat {f}] TEST acc={m['acc']:.3f} F1={m['macro_f1']:.3f} UAR={m['uar']:.3f}")
+            m = metrics(y[te], pred)
+            print(f"[kat {f}] TEST acc={m['acc']:.3f} F1={m['macro_f1']:.3f} UAR={m['uar']:.3f}", flush=True)
+            return te_pos, pred, m
+
+        if args.only_fold is not None:                                              # alt süreç: tek kat
+            te_pos, pred, m = run_fold(args.only_fold, X)
+            np.savez(out / f"_kat{args.only_fold}_{tag}.npz", te_pos=te_pos, pred=pred, metrics=json.dumps(m))
+            return
+
+        results = run_folds_parallel(args, out, tag) if args.parallel > 1 else {}  # katlar aynı anda
+        missing = [f for f in range(args.cv) if f not in results]
+        if missing and X is None:
+            print(f"Sırayla çalıştırılacak katlar: {missing}", flush=True)
+            X = load_pooled(args.in_dir, "X", args.in_dir).astype(np.float32)
+        for f in missing:                                                           # sıralı (ya da yedek)
+            results[f] = run_fold(f, X)
+
+        oof = np.full(len(eval_idx), -1); fold_m = []
+        for f in range(args.cv):
+            te_pos, pred, m = results[f]
+            oof[te_pos] = pred; fold_m.append(m)
+        assert (oof >= 0).all()
         np.save(out / f"oof_{tag}.npy", oof); np.save(out / "oof_index.npy", eval_idx)
         cm = confusion_matrix(y_oof, oof, labels=LABELS)
         plot_cm(cm, f"{name} - {args.cv} katlı CV", out / f"cm_oof_{tag}.png")
@@ -329,6 +423,8 @@ def main():
                    "models": {name: {"folds": fold_m, "mean_std": agg, "oof_file": f"oof_{tag}.npy",
                                       "pooled_oof": metrics(y_oof, oof)}}},
                   open(out / "cv_summary.json", "w"), indent=2, ensure_ascii=False)
+        for f in range(args.cv):
+            print(f"[kat {f}] TEST acc={fold_m[f]['acc']:.3f} F1={fold_m[f]['macro_f1']:.3f} UAR={fold_m[f]['uar']:.3f}")
         print(f"\n{name} {args.cv} katlı CV: doğruluk {agg['acc'][0]*100:.1f} ± {agg['acc'][1]*100:.1f}% | "
               f"makro F1 {agg['macro_f1'][0]:.3f} ± {agg['macro_f1'][1]:.3f}")
         return
