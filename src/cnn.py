@@ -50,12 +50,16 @@ class LogMel(nn.Module):
         self.register_buffer("win", torch.hamming_window(N_FFT, periodic=True))
 
     def forward(self, x):                                                            # x: (B, n_örnek)
-        spec = torch.stft(x.float(), N_FFT, HOP, N_FFT, self.win, center=True, pad_mode="constant",
-                          return_complex=True).abs() ** 2                            # (B, 201, T)
-        S = torch.matmul(self.fb, spec)                                              # (B, 128, T)
-        db = 10 * torch.log10(S.clamp_min(1e-10))
-        db = db - db.amax(dim=(1, 2), keepdim=True)
-        return db.clamp_min(-80.0)
+        # Hafta 7 düzeltmesi: ön uç her zaman fp32'de hesaplanır. GPU'daki karma hassasiyette (autocast, fp16)
+        # 1e-10 sıfıra yuvarlanıyor; tamamen sessiz bir kayıtta log10(0) = -inf, -inf - (-inf) = NaN oluyordu.
+        # Bu NaN, eğitimde BatchNorm istatistiklerini bozup modeli tek sınıf tahmin etmeye itiyordu.
+        with torch.autocast(device_type=x.device.type, enabled=False):
+            spec = torch.stft(x.float(), N_FFT, HOP, N_FFT, self.win.float(), center=True, pad_mode="constant",
+                              return_complex=True).abs() ** 2                        # (B, 201, T)
+            S = torch.matmul(self.fb.float(), spec)                                  # (B, 128, T)
+            db = 10 * torch.log10(S.clamp_min(1e-10))
+            db = db - db.amax(dim=(1, 2), keepdim=True)
+            return db.clamp_min(-80.0)
 
 
 def _band_mask(B, L, max_w, dev):
@@ -171,12 +175,30 @@ def predict(model, X, device, bs=128):
     return np.concatenate(P)
 
 
+@torch.no_grad()
+def check_finite(model, X, device, log_prefix="", bs=256):
+    """Eğitimden önce tüm eğitim örneklerinin normalize log-mel'ini (eğitimdeki karma hassasiyetle) hesaplar;
+    sonlu olmayan (NaN/Inf) değer üreten örnek varsa eğitimi durdurur."""
+    bad = []
+    for i in range(0, len(X), bs):
+        xb = torch.from_numpy(X[i:i + bs]).to(device)
+        with torch.autocast(device_type="cuda", enabled=device == "cuda"):
+            m = model.features(xb)
+        ok = torch.isfinite(m).flatten(1).all(1).cpu().numpy()
+        bad += (np.where(~ok)[0] + i).tolist()
+    n_silent = int(np.sum(~np.any(X != 0, axis=1)))
+    print(f"{log_prefix}ön uç kontrolü: {len(X)} örnek, NaN/Inf {len(bad)}, tamamen sessiz {n_silent}")
+    if bad:
+        raise RuntimeError(f"Ön uç {len(bad)} örnekte NaN/Inf üretti (ilk indeksler: {bad[:10]})")
+
+
 def train_model(Xtr, ytr, Xva, yva, args, device, log_prefix=""):
     """Xva None ise sabit epok (CV modu). Döner: (en iyi model, geçmiş)."""
     from sklearn.metrics import f1_score
     model = SERCNN(drop=args.dropout, head_drop=args.head_dropout, specaug=not args.no_specaug,
                    model_type=args.model).to(device)
     model.fit_norm(Xtr, device)
+    check_finite(model, Xtr, device, log_prefix)
     counts = np.bincount(ytr, minlength=len(CLASSES))
     w = torch.tensor(len(ytr) / (len(CLASSES) * np.maximum(counts, 1)), dtype=torch.float32, device=device)
     crit = nn.CrossEntropyLoss(weight=w, label_smoothing=args.label_smoothing)

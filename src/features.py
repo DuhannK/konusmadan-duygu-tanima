@@ -16,6 +16,7 @@ import argparse, json
 from pathlib import Path
 import numpy as np
 import librosa
+import os
 from joblib import Parallel, delayed
 
 SR = 16000
@@ -72,6 +73,23 @@ def one(y, skip_lm=False):
     return (None if skip_lm else logmel(y)), handcrafted(y)
 
 
+def run_parallel(X, skip_logmel, n_jobs):
+    """Hafta 7: Colab'da (Python 3.13) çok sayıda süreç librosa'nın derlenmiş (numba) fonksiyonlarını aynı anda
+    hazırlarken alt süreçler SIGSEGV ile çöktü. Önce ana süreçte bir ısınma çağrısı yapılır (derlenmiş kod
+    önbelleğe yazılır); yine çökerse daha az süreçle, en son iş parçacıklarıyla yeniden denenir. Sonuç her yolda aynıdır."""
+    one(X[0], skip_logmel)                                   # ısınma: derleme ana süreçte bir kez yapılır
+    n_cpu = os.cpu_count() or 1
+    n = n_cpu if n_jobs is None or n_jobs < 1 else n_jobs
+    attempts = [dict(n_jobs=min(n, 8)), dict(n_jobs=min(n, 4)), dict(n_jobs=min(n, 8), backend="threading")]
+    for i, kw in enumerate(attempts):
+        try:
+            return Parallel(batch_size=32, **kw)(delayed(one)(y, skip_logmel) for y in X)
+        except Exception as e:                               # ör. TerminatedWorkerError (SIGSEGV)
+            print(f"UYARI: paralel çalışma başarısız ({kw}): {type(e).__name__}; yeniden deneniyor...", flush=True)
+            if i == len(attempts) - 1:
+                raise
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--in_dir", required=True)
@@ -85,7 +103,7 @@ def main():
     info = {}
     for split in ["train", "val", "test"]:
         X = np.load(inp / f"X_{split}.npy")
-        res = Parallel(n_jobs=args.n_jobs)(delayed(one)(y, args.skip_logmel) for y in X)
+        res = run_parallel(X, args.skip_logmel, args.n_jobs)
         F = np.stack([r[1] for r in res])
         LM = None if args.skip_logmel else np.stack([r[0] for r in res])
         ex_path = inp / f"extras_{split}.npy"
