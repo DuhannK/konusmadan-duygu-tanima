@@ -73,6 +73,14 @@ for line in p.stderr:
 Çıkan `https://...trycloudflare.com` linkine tıkla. Arayüz açılır:
 soldan model seç, dosya yükle ya da mikrofonla konuş, tahmini ve olasılıkları gör.
 
+## Hafta 7 modelleri
+- **wav2vec katman birleşimi:** `w2v_experiments.py` doğrulamada en iyi stratejinin modelini `w2v_exp_all/model/` içine kaydeder.
+  Arayüzde kullanmak için 4. hücredeki komutta `--w2v_dir w2v_exp_all/model --feat_info w2v_exp_all/model/w2v_info.json` verin.
+  Birden çok katmanın ortalaması seçildiyse arayüz bunu `w2v_info.json` içindeki `layers` listesinden otomatik okur.
+- **CNN-LSTM:** `--cnn cnn_lstm_all/cnn_lstm_best.pt` verin (aynı "CNN" seçeneğinde çalışır).
+- **Düzeltme:** wav2vec tahmininde 3 sn'lik pencerenin sonundaki sessiz dolgu artık kodlayıcıya verilmeden önce kesilir
+  (eğitimdeki `extra_features.py` ile aynı); önceki sürümde dolgu da kodlayıcıya veriliyordu.
+
 ## Notlar
 - İlk wav2vec tahmininde `wav2vec2-base` modeli indirilir (~360 MB), birkaç saniye sürer; sonra önbelleğe alınır.
 - GPU şart değil; demo CPU'da da çalışır (wav2vec tahmini CPU'da ~1–2 sn).

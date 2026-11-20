@@ -16,7 +16,7 @@ Kullanım:
       --params results_v3/results.json --out_dir cv_ravdess_feat
   python src/cv_eval.py ... --tune          # iç içe (nested) seçim: her katta hiperparametreler ayrıca seçilir
 """
-import argparse, itertools, json, os, time
+import argparse, itertools, json, os, re, time
 from pathlib import Path
 import numpy as np
 from joblib import Parallel, delayed
@@ -159,7 +159,7 @@ def main():
         pooled = metrics(y_oof, pred)
         by_ds = {DS_NAMES[ds]: metrics(y_oof[ds_oof == ds], pred[ds_oof == ds]) for ds in np.unique(ds_oof)}
         cm = confusion_matrix(y_oof, pred, labels=LABELS)
-        tag = TAGS.get(n, n.lower().replace(" ", "_"))
+        tag = TAGS.get(n, re.sub(r"[^a-z0-9]+", "_", n.lower()).strip("_"))   # ör. "svm_w2v_orta_ort"
         plot_cm(cm, f"{n} - {args.k} katlı CV ({args.feat_name})", out / f"cm_oof_{tag}.png")
         np.save(out / f"oof_{tag}.npy", pred)
         per_class = (cm.diagonal() / np.maximum(cm.sum(1), 1)).tolist()

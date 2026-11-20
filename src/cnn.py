@@ -5,18 +5,24 @@ Model girdisi ham dalga biçimidir (16 kHz, 3 sn); log-mel spektrogram (128 mel 
 10 ms kaydırma -> 128 x 301) modelin İÇİNDE, features.py/librosa ile birebir aynı ayarlarla GPU'da hesaplanır.
 Böylece demo uygulaması da aynı ön ucu (front-end) kullanır ve eğitim/kullanım arasında fark oluşmaz.
 
-Mimari: 4 konvolüsyon bloğu [Conv3x3-BN-ReLU-Conv3x3-BN-ReLU-MaxPool-Dropout] (32-64-128-256 kanal)
+Mimari (--model cnn): 4 konvolüsyon bloğu [Conv3x3-BN-ReLU-Conv3x3-BN-ReLU-MaxPool-Dropout] (32-64-128-256 kanal)
         -> küresel ortalama havuzlama -> Dropout -> Linear(6)  (~1,2 M parametre)  [12, 13]
+Mimari (--model cnn_lstm): aynı 4 konvolüsyon bloğu -> frekans ekseninde ortalama (256 kanal x 18 zaman adımı)
+        -> çift yönlü LSTM (128 gizli birim) -> zaman ekseninde ortalama -> Dropout -> Linear(6)  [12, 13]
 Eğitim: AdamW + OneCycle, sınıf ağırlıklı çapraz entropi (+ etiket yumuşatma), SpecAugment [15]
-        (frekans/zaman maskeleme) ve rastgele zaman kaydırma; doğrulama makro F1'ine göre erken durdurma.
-        Normalizasyon (mel bandı başına ortalama/std) yalnızca eğitim verisinden hesaplanır.
+        (frekans/zaman maskeleme) ve rastgele zaman kaydırma. Normalizasyon (mel bandı başına ortalama/std)
+        yalnızca eğitim verisinden hesaplanır.
+Hafta 5/7 düzeltmesi: OneCycle takvimi her zaman sonuna kadar (varsayılan 40 epok) çalışır; erken durdurma
+        varsayılan olarak kapalıdır (--patience 0). Hafta 4'te erken durdurma eğitimi öğrenme oranı henüz yüksekken
+        kesiyordu. Tek bölümlemede doğrulama makro F1'i en yüksek epoğun ağırlıkları geri yüklenir.
 Test kümesi yalnızca bir kez, en iyi doğrulama modeliyle ölçülür.
 
 Kullanım (Colab GPU):
-  python src/cnn.py --in_dir processed_v3 --dataset ravdess --out_dir cnn_ravdess
-  python src/cnn.py --in_dir processed_v3 --dataset all     --out_dir cnn_all
-  # Konuşmacı bazlı 5 katlı CV (cv_eval.py ile aynı katlar; erken durdurma yerine sabit epok):
-  python src/cnn.py --in_dir processed_v3 --dataset ravdess --cv 5 --epochs 40 --out_dir cnn_cv_ravdess
+  python src/cnn.py --in_dir processed_v3 --dataset all --model cnn      --out_dir cnn_all
+  python src/cnn.py --in_dir processed_v3 --dataset all --model cnn_lstm --out_dir cnn_lstm_all
+  # Konuşmacı bazlı 5 katlı CV (cv_eval.py ile aynı katlar; sabit epok, doğrulama kümesi kullanılmaz):
+  python src/cnn.py --in_dir processed_v3 --dataset all --model cnn      --cv 5 --out_dir cnn_cv_all
+  python src/cnn.py --in_dir processed_v3 --dataset all --model cnn_lstm --cv 5 --out_dir cnn_lstm_cv_all
 """
 import argparse, json, math, random, time
 from pathlib import Path
@@ -78,9 +84,17 @@ def block(cin, cout, p):
                          nn.MaxPool2d(2), nn.Dropout(p))
 
 
+MODEL_NAMES = {"cnn": "CNN", "cnn_lstm": "CNN-LSTM"}
+
+
 class SERCNN(nn.Module):
-    def __init__(self, n_classes=6, chans=(32, 64, 128, 256), drop=0.1, head_drop=0.3, specaug=True):
+    """model_type='cnn' -> küresel ortalama havuzlama; 'cnn_lstm' -> çift yönlü LSTM ile zaman modellemesi."""
+
+    def __init__(self, n_classes=6, chans=(32, 64, 128, 256), drop=0.1, head_drop=0.3, specaug=True,
+                 model_type="cnn", lstm_hidden=128):
         super().__init__()
+        assert model_type in MODEL_NAMES, model_type
+        self.model_type = model_type
         self.frontend = LogMel()
         self.register_buffer("mu", torch.zeros(N_MELS, 1))
         self.register_buffer("sd", torch.ones(N_MELS, 1))
@@ -89,6 +103,9 @@ class SERCNN(nn.Module):
         for c in chans:
             layers.append(block(cin, c, drop)); cin = c
         self.body = nn.Sequential(*layers)
+        if model_type == "cnn_lstm":
+            self.lstm = nn.LSTM(cin, lstm_hidden, batch_first=True, bidirectional=True)
+            cin = 2 * lstm_hidden
         self.head = nn.Sequential(nn.Dropout(head_drop), nn.Linear(cin, n_classes))
 
     def features(self, x):
@@ -99,8 +116,13 @@ class SERCNN(nn.Module):
         m = self.features(x)
         if self.training and self.specaug:
             m = spec_augment(m)
-        h = self.body(m)
-        h = h.mean(dim=(2, 3))                                                       # küresel ortalama havuzlama
+        h = self.body(m)                                                             # (B, C, F', T')
+        if self.model_type == "cnn_lstm":
+            seq = h.mean(dim=2).transpose(1, 2)                                      # (B, T', C): zaman dizisi
+            out, _ = self.lstm(seq.float())                                          # (B, T', 2*gizli)
+            h = out.mean(dim=1)                                                      # zaman ekseninde ortalama
+        else:
+            h = h.mean(dim=(2, 3))                                                   # küresel ortalama havuzlama
         return self.head(h)
 
     @torch.no_grad()
@@ -152,7 +174,8 @@ def predict(model, X, device, bs=128):
 def train_model(Xtr, ytr, Xva, yva, args, device, log_prefix=""):
     """Xva None ise sabit epok (CV modu). Döner: (en iyi model, geçmiş)."""
     from sklearn.metrics import f1_score
-    model = SERCNN(drop=args.dropout, head_drop=args.head_dropout, specaug=not args.no_specaug).to(device)
+    model = SERCNN(drop=args.dropout, head_drop=args.head_dropout, specaug=not args.no_specaug,
+                   model_type=args.model).to(device)
     model.fit_norm(Xtr, device)
     counts = np.bincount(ytr, minlength=len(CLASSES))
     w = torch.tensor(len(ytr) / (len(CLASSES) * np.maximum(counts, 1)), dtype=torch.float32, device=device)
@@ -191,17 +214,19 @@ def train_model(Xtr, ytr, Xva, yva, args, device, log_prefix=""):
         hist.append(h)
         msg = " ".join(f"{k}={v:.3f}" for k, v in h.items() if k != "epoch")
         print(f"{log_prefix}epok {ep:3d} | {msg} | {time.time() - t0:.0f} sn")
-        if Xva is not None and bad >= args.patience:
+        if Xva is not None and args.patience > 0 and bad >= args.patience:
             print(f"{log_prefix}erken durdurma (en iyi val F1 = {best:.3f})")
             break
-    if best_state is not None:
+    if best_state is not None:                                    # en iyi doğrulama epoğunun ağırlıkları
         model.load_state_dict(best_state)
+        print(f"{log_prefix}en iyi doğrulama epoğu geri yüklendi (val F1 = {best:.3f})")
     return model, hist
 
 
 def save_ckpt(model, args, path, extra=None):
     torch.save({"state_dict": model.state_dict(), "classes": CLASSES, "sr": SR, "duration": DURATION,
-                "arch": dict(drop=args.dropout, head_drop=args.head_dropout), "train_args": vars(args),
+                "arch": dict(drop=args.dropout, head_drop=args.head_dropout, model_type=args.model),
+                "train_args": vars(args),
                 **(extra or {})}, path)
 
 
@@ -223,7 +248,8 @@ def main():
     ap.add_argument("--in_dir", required=True, help="preprocess.py çıktısı (X_*.npy, metadata.csv)")
     ap.add_argument("--dataset", default="all", choices=["all", "ravdess", "cremad"])
     ap.add_argument("--out_dir", default="cnn_results")
-    ap.add_argument("--epochs", type=int, default=60)
+    ap.add_argument("--model", default="cnn", choices=list(MODEL_NAMES), help="cnn | cnn_lstm")
+    ap.add_argument("--epochs", type=int, default=40, help="OneCycle takviminin tamamı bu kadar epok sürer")
     ap.add_argument("--batch", type=int, default=64)
     ap.add_argument("--lr", type=float, default=2e-3)
     ap.add_argument("--weight_decay", type=float, default=1e-2)
@@ -233,7 +259,7 @@ def main():
     ap.add_argument("--time_shift", type=float, default=0.25, help="rastgele zaman kaydırma (sn)")
     ap.add_argument("--no_specaug", action="store_true")
     ap.add_argument("--no_aug", action="store_true", help="preprocess'teki artırılmış kopyaları kullanma")
-    ap.add_argument("--patience", type=int, default=12)
+    ap.add_argument("--patience", type=int, default=0, help="0 = erken durdurma kapalı (önerilen)")
     ap.add_argument("--cv", type=int, default=0, help="k > 0 ise konuşmacı bazlı k katlı CV (sabit epok)")
     ap.add_argument("--demographics", help="CV için (cv_eval.py ile aynı verilmeli)")
     ap.add_argument("--seed", type=int, default=42)
@@ -244,6 +270,7 @@ def main():
     from sklearn.metrics import confusion_matrix
 
     set_seed(args.seed)
+    tag, name = args.model, MODEL_NAMES[args.model]          # dosya adı etiketi / raporlardaki model adı
     device = "cuda" if torch.cuda.is_available() else "cpu"
     torch.backends.cudnn.benchmark = True             # sabit girdi boyutu (128x301) -> en hızlı konvolüsyon seçilir
     out = Path(args.out_dir); out.mkdir(parents=True, exist_ok=True)
@@ -253,7 +280,7 @@ def main():
     sel = select_dataset(pool, args.dataset)
     is_aug = pool.is_aug.to_numpy()
     dsid = (pool.dataset == "cremad").to_numpy().astype(int)
-    print(f"Cihaz: {device} | veri: {args.dataset} | toplam {sel.sum()} kayıt (artırılmış dahil)")
+    print(f"Model: {name} | cihaz: {device} | veri: {args.dataset} | toplam {sel.sum()} kayıt (artırılmış dahil)")
     json.dump(vars(args), open(out / "args.json", "w"), indent=2)
 
     if args.cv:                                                                     # ---------- CV modu
@@ -271,16 +298,16 @@ def main():
             oof[te_pos] = pred
             m = metrics(y[te], pred); fold_m.append(m)
             print(f"[kat {f}] TEST acc={m['acc']:.3f} F1={m['macro_f1']:.3f} UAR={m['uar']:.3f}")
-        np.save(out / "oof_cnn.npy", oof); np.save(out / "oof_index.npy", eval_idx)
+        np.save(out / f"oof_{tag}.npy", oof); np.save(out / "oof_index.npy", eval_idx)
         cm = confusion_matrix(y_oof, oof, labels=LABELS)
-        plot_cm(cm, f"CNN - {args.cv} katlı CV", out / "cm_oof_cnn.png")
+        plot_cm(cm, f"{name} - {args.cv} katlı CV", out / f"cm_oof_{tag}.png")
         agg = {k: (float(np.mean([m[k] for m in fold_m])), float(np.std([m[k] for m in fold_m])))
                for k in ["acc", "macro_f1", "uar"]}
         json.dump({"fold_signature": fold_signature(pool, folds), "dataset": args.dataset, "k": args.cv,
-                   "models": {"CNN": {"folds": fold_m, "mean_std": agg, "oof_file": "oof_cnn.npy",
+                   "models": {name: {"folds": fold_m, "mean_std": agg, "oof_file": f"oof_{tag}.npy",
                                       "pooled_oof": metrics(y_oof, oof)}}},
                   open(out / "cv_summary.json", "w"), indent=2, ensure_ascii=False)
-        print(f"\nCNN {args.cv} katlı CV: doğruluk {agg['acc'][0]*100:.1f} ± {agg['acc'][1]*100:.1f}% | "
+        print(f"\n{name} {args.cv} katlı CV: doğruluk {agg['acc'][0]*100:.1f} ± {agg['acc'][1]*100:.1f}% | "
               f"makro F1 {agg['macro_f1'][0]:.3f} ± {agg['macro_f1'][1]:.3f}")
         return
 
@@ -298,17 +325,17 @@ def main():
     by_ds = {nm: metrics(y[te][dsid[te] == k], pred[dsid[te] == k])
              for k, nm in {0: "RAVDESS", 1: "CREMA-D"}.items() if (dsid[te] == k).any()}
     cm = confusion_matrix(y[te], pred, labels=LABELS)
-    plot_cm(cm, "CNN - test", out / "cm_cnn.png")
+    plot_cm(cm, f"{name} - test", out / f"cm_{tag}.png")
     np.save(out / "pred_test.npy", pred); np.save(out / "probs_test.npy", probs)
     np.save(out / "y_test.npy", y[te]); np.save(out / "dataset_test.npy", dsid[te])
     n_params = sum(p.numel() for p in model.parameters())
-    save_ckpt(model, args, out / "cnn_best.pt", {"val": val_m, "test": test_m})
+    save_ckpt(model, args, out / f"{tag}_best.pt", {"val": val_m, "test": test_m})
     res = dict(val=val_m, test=test_m, test_by_dataset=by_ds, confusion_matrix=cm.tolist(),
                per_class_recall=dict(zip(CLASSES, (cm.diagonal() / np.maximum(cm.sum(1), 1)).tolist())),
                epochs_run=len(hist), best_epoch=int(np.argmax([h["val_f1"] for h in hist]) + 1),
                n_params=int(n_params), history=hist)
     json.dump(res, open(out / "results.json", "w"), indent=2, ensure_ascii=False)
-    print(f"\nCNN TEST acc={test_m['acc']:.3f} makroF1={test_m['macro_f1']:.3f} UAR={test_m['uar']:.3f} "
+    print(f"\n{name} TEST acc={test_m['acc']:.3f} makroF1={test_m['macro_f1']:.3f} UAR={test_m['uar']:.3f} "
           f"| en iyi epok {res['best_epoch']} | {n_params/1e6:.2f} M parametre")
     for k, v in by_ds.items():
         print(f"   {k}: acc={v['acc']:.3f} F1={v['macro_f1']:.3f}")

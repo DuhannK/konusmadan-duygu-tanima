@@ -82,12 +82,13 @@ def get_w2v_head(d, info_path):
     d = Path(d)
     scaler = joblib.load(d / "scaler.joblib")
     model = joblib.load(d / "model_svm.joblib")
-    layer = 5
+    layers = [5]
     try:
-        layer = int(json.load(open(info_path))["w2v"]["layer"])
+        w = json.load(open(info_path))["w2v"]
+        layers = [int(l) for l in w.get("layers", [w["layer"]])]   # Hafta 7: katman birleşimi desteği
     except Exception:
         pass
-    return scaler, model, layer
+    return scaler, model, layers
 
 
 @st.cache_resource(show_spinner="CNN modeli yükleniyor...")
@@ -139,19 +140,19 @@ def _softmax(s):
     return e / e.sum()
 
 
-def predict_w2v(fe, encoder, scaler, svm, layer, W):
-    """Her pencereyi wav2vec'ten geçir, seçilen katmanı zaman-ortala, SVM ile tahmin et.
-    Sondaki sıfır dolgusu, geçerli çerçeve sayısı üzerinden ortalamadan dışlanır
-    (extra_features.py ile tutarlı)."""
+def predict_w2v(fe, encoder, scaler, svm, layers, W):
+    """Her pencereyi wav2vec'ten geçir, seçilen katman(lar)ı ortala, zaman-ortala, SVM ile tahmin et.
+    Hafta 7 düzeltmesi: sondaki sıfır dolgusu, eğitimdeki gibi (extra_features.strip_pad) kodlayıcıya
+    verilmeden ÖNCE kesilir; önceki sürüm dolguyu da kodlayıcıya veriyordu (eğitim/kullanım farkı)."""
     embs = []
     for w in W:
         nz = np.flatnonzero(w)
-        real_len = int(nz[-1] + 1) if nz.size else len(w)       # dolgu öncesi gerçek uzunluk
+        real_len = max(int(nz[-1] + 1) if nz.size else len(w), SR // 2)   # en az 0,5 sn (strip_pad ile aynı)
+        w = w[:real_len]
         inp = fe([w], sampling_rate=SR, return_tensors="pt", padding=True)
         hs = encoder(inp["input_values"]).hidden_states         # (L+1) x (1,T,D)
-        h = hs[layer][0]                                         # (T,D)
-        n_frames = max(1, min(h.shape[0], int(np.ceil(real_len / W2V_HOP))))
-        embs.append(h[:n_frames].mean(0).numpy())
+        h = sum(hs[l][0] for l in layers) / len(layers)          # (T,D) seçilen katmanların ortalaması
+        embs.append(h.mean(0).numpy())
     Z = scaler.transform(np.stack(embs).astype(np.float32))
     if hasattr(svm, "predict_proba"):
         return svm.predict_proba(Z).mean(0), True
@@ -303,8 +304,8 @@ def main():
     calibrated = True
     if kind == "w2v":
         fe, encoder = get_w2v_encoder(a.w2v_model)
-        scaler, svm, layer = get_w2v_head(a.w2v_dir, a.feat_info)
-        probs, calibrated = predict_w2v(fe, encoder, scaler, svm, layer, W)
+        scaler, svm, layers = get_w2v_head(a.w2v_dir, a.feat_info)
+        probs, calibrated = predict_w2v(fe, encoder, scaler, svm, layers, W)
     elif kind == "cnn":
         model, _ = get_cnn(a.cnn)
         probs = predict_cnn(model, W)
